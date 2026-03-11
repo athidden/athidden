@@ -4,6 +4,6 @@ export default defineLexiconConfig({
   files: ['src/**/*.ts'],
   outdir: 'lib/',
   export: {
-    outdir: '.',
+    outdir: 'lexicons/',
   },
 })

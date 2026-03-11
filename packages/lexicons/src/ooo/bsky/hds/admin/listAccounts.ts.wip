@@ -1,0 +1,7 @@
+// lists all accounts on the server, requires admin access
+// results contain:
+// 1. each account's did
+// 2. creation and update timestamps
+// 3. the number of records stored
+// 4. are they an admin?
+// 5. are they banned from this HDS? as a string, where the string is the ban reason

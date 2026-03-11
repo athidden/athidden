@@ -18,10 +18,10 @@
   "scripts": {
     "lex-generate": "lex-cli generate",
     "lex-export": "lex-cli export",
-    "goat-parse-lexicons": "goat lex parse ooo/bsky/**/*.json",
-    "goat-publish-lexicons": "goat lex publish --update --lexicons-dir .",
-    "build": "bun run lex-generate && bun run lex-export && tsc --project tsconfig.build.json && echo 'done!'",
-    "prepublish": "rm -rf dist lib ooo; bun run build"
+    "goat-parse-lexicons": "goat lex parse lexicons/ooo/bsky/**/*.json",
+    "goat-publish-lexicons": "goat lex publish --update --lexicons-dir ./lexicons",
+    "build": "bun run lex-generate && bun run lex-export && bun run goat-parse-lexicons && tsc --project tsconfig.build.json && echo 'done!'",
+    "prepublish": "rm -rf dist lib lexicons; bun run build"
   },
   "dependencies": {
     "@atcute/lexicons": "^1.2.9"
