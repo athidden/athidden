@@ -30,14 +30,5 @@
         "elementNamePattern": ["@athidden/**"]
       }
     ]
-  },
-
-  "overrides": [
-    {
-      "files": ["**/tsconfig.json", "**/tsconfig.*.json"],
-      "options": {
-        "parser": "jsonc"
-      }
-    }
-  ]
+  }
 }

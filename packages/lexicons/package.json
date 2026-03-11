@@ -1,0 +1,35 @@
+{
+  "name": "@athidden/lexicons",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/luavixen/athidden",
+    "directory": "packages/lexicons"
+  },
+  "bugs": {
+    "url": "https://github.com/luavixen/athidden"
+  },
+  "homepage": "https://github.com/luavixen/athidden",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "lex-generate": "lex-cli generate",
+    "lex-export": "lex-cli export",
+    "goat-parse-lexicons": "goat lex parse ooo/bsky/**/*.json",
+    "goat-publish-lexicons": "goat lex publish --update --lexicons-dir .",
+    "build": "bun run lex-generate && bun run lex-export && tsc --project tsconfig.build.json && echo 'done!'",
+    "prepublish": "rm -rf dist lib ooo; bun run build"
+  },
+  "dependencies": {
+    "@atcute/lexicons": "^1.2.9"
+  },
+  "devDependencies": {
+    "@atcute/lex-cli": "^2.5.3",
+    "@atcute/lexicon-doc": "^2.1.2",
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}

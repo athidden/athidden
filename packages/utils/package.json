@@ -1,12 +1,12 @@
 {
-  "name": "@athidden/util",
+  "name": "@athidden/utils",
   "version": "0.0.1",
   "description": "",
   "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
   "license": "MIT",
   "repository": {
     "url": "https://github.com/luavixen/athidden",
-    "directory": "packages/util"
+    "directory": "packages/utils"
   },
   "bugs": {
     "url": "https://github.com/luavixen/athidden"

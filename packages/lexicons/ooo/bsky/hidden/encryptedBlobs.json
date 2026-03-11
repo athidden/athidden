@@ -1,0 +1,18 @@
+{
+  "defs": {
+    "main": {
+      "properties": {
+        "blobs": {
+          "items": {
+            "type": "blob"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["blobs"],
+      "type": "object"
+    }
+  },
+  "id": "ooo.bsky.hidden.encryptedBlobs",
+  "lexicon": 1
+}

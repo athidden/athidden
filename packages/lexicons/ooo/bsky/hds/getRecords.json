@@ -1,0 +1,42 @@
+{
+  "defs": {
+    "main": {
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "properties": {
+            "boxes": {
+              "items": {
+                "ref": "ooo.bsky.hidden.box",
+                "type": "ref"
+              },
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "array"
+            }
+          },
+          "required": ["boxes"],
+          "type": "object"
+        }
+      },
+      "parameters": {
+        "properties": {
+          "uris": {
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "array"
+          }
+        },
+        "required": ["uris"],
+        "type": "params"
+      },
+      "type": "query"
+    }
+  },
+  "id": "ooo.bsky.hds.getRecords",
+  "lexicon": 1
+}

@@ -1,0 +1,20 @@
+{
+  "defs": {
+    "main": {
+      "properties": {
+        "boxUri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "valueCid": {
+          "type": "string",
+          "format": "cid"
+        }
+      },
+      "required": ["boxUri", "valueCid"],
+      "type": "object"
+    }
+  },
+  "id": "ooo.bsky.hidden.ref",
+  "lexicon": 1
+}

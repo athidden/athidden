@@ -8,8 +8,8 @@ package_path="./packages/$package_name"
 mkdir -p "$package_path"
 
 ln -s ../../LICENSE "$package_path/LICENSE"
-ln -s ../../tsconfig.json "$package_path/tsconfig.json"
-ln -s ../../tsconfig.build.json "$package_path/tsconfig.build.json"
+ln -s ../../root-tsconfig.json "$package_path/tsconfig.json"
+ln -s ../../root-tsconfig.build.json "$package_path/tsconfig.build.json"
 
 cp ./package.base.json "$package_path/package.json"
 sed -i "s/name\": \"\"/name\": \"@athidden\/$package_name\"/" "$package_path/package.json"
