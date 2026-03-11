@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "fmt": "oxfmt",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "oxfmt": "^0.38.0",
+    "oxlint": "^1.53.0",
+    "typescript": "latest"
+  }
+}

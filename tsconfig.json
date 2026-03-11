@@ -1,0 +1,28 @@
+{
+  "include": ["lib/**/*"],
+  "compilerOptions": {
+    "rootDir": "lib/",
+    "outDir": "dist/",
+
+    "noEmit": false,
+    "declaration": true,
+
+    "lib": ["esnext"],
+    "target": "esnext",
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+  },
+}

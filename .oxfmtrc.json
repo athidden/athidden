@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+
+  "sortPackageJson": false,
+
+  "sortImports": {
+    "groups": [
+      ["builtin", "bun"],
+      ["atcute"],
+      ["athidden"],
+      ["external"],
+      ["parent"],
+      ["sibling", "index"]
+    ],
+    "customGroups": [
+      {
+        "groupName": "bun",
+        "elementNamePattern": ["bun", "bun:*"]
+      },
+      {
+        "groupName": "atcute",
+        "elementNamePattern": ["@atcute/**"]
+      },
+      {
+        "groupName": "athidden",
+        "elementNamePattern": ["@athidden/**"]
+      }
+    ]
+  },
+
+  "overrides": [
+    {
+      "files": ["**/tsconfig.json", "**/tsconfig.*.json"],
+      "options": {
+        "parser": "jsonc"
+      }
+    }
+  ]
+}
