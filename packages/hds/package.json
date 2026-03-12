@@ -1,0 +1,41 @@
+{
+  "name": "@athidden/hds",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/luavixen/athidden",
+    "directory": "packages/hds"
+  },
+  "bugs": {
+    "url": "https://github.com/luavixen/athidden"
+  },
+  "homepage": "https://github.com/luavixen/athidden",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "prepublish": "rm -rf dist; bun run build"
+  },
+  "dependencies": {
+    "@atcute/atproto": "^3.1.10",
+    "@atcute/bluesky": "^3.3.0",
+    "@atcute/car": "^5.1.1",
+    "@atcute/cbor": "^2.3.2",
+    "@atcute/cid": "^2.4.1",
+    "@atcute/client": "^4.2.1",
+    "@atcute/identity": "^1.1.3",
+    "@atcute/identity-resolver": "^1.2.2",
+    "@atcute/tid": "^1.1.2",
+    "@atcute/xrpc-server": "^0.1.11",
+    "@athidden/lexicons": "workspace:*",
+    "pino": "^10.3.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}
