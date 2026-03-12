@@ -9,7 +9,7 @@ import {
 } from '@atcute/lexicon-doc/builder'
 
 export default document({
-  id: 'ooo.bsky.hds.createRecord',
+  id: 'ooo.bsky.hds.putRecord',
   revision: 1,
   defs: {
     main: procedure({
@@ -19,10 +19,11 @@ export default document({
           properties: {
             repo: required(string({ format: 'at-identifier' })),
             collection: required(string({ format: 'nsid' })),
-            rkey: string({ format: 'record-key' }),
+            rkey: required(string({ format: 'record-key' })),
             gateUri: required(string({ format: 'uri' })),
             record: required(unknown()),
             validate: boolean(),
+            swapRecord: string({ format: 'cid' }),
           },
         }),
       },
@@ -40,7 +41,7 @@ export default document({
           },
         }),
       },
-      errors: [{ name: 'AlreadyExists' }],
+      errors: [{ name: 'InvalidSwap' }],
     }),
   },
 })

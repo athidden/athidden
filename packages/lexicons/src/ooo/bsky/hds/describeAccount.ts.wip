@@ -1,3 +1,0 @@
-// describes an account
-// 1. did, always
-// 2. collections, only if it's your own account or if you're an admin

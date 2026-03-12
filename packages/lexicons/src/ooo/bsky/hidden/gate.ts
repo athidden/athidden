@@ -11,6 +11,7 @@ import {
 
 export default document({
   id: 'ooo.bsky.hidden.gate',
+  revision: 1,
   defs: {
     main: record({
       key: 'any',

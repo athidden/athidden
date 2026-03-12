@@ -4,36 +4,28 @@ import {
   object,
   params,
   query,
-  ref,
   required,
   string,
 } from '@atcute/lexicon-doc/builder'
 
 export default document({
-  id: 'ooo.bsky.hds.getRecords',
+  id: 'ooo.bsky.hds.describeAccount',
   revision: 1,
   defs: {
     main: query({
       parameters: params({
         properties: {
-          uris: required(
-            array({
-              minLength: 1,
-              maxLength: 50,
-              items: string({ format: 'uri' }),
-            }),
-          ),
+          repo: required(string({ format: 'at-identifier' })),
         },
       }),
       output: {
         encoding: 'application/json',
         schema: object({
           properties: {
-            boxes: required(
+            did: required(string({ format: 'did' })),
+            collections: required(
               array({
-                minLength: 1,
-                maxLength: 50,
-                items: ref({ ref: 'ooo.bsky.hidden.box' }),
+                items: string({ format: 'nsid' }),
               }),
             ),
           },

@@ -10,6 +10,7 @@ import {
 
 export default document({
   id: 'ooo.bsky.hidden.encryptedBlobKeys',
+  revision: 1,
   defs: {
     main: object({
       properties: {

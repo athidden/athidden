@@ -2,6 +2,7 @@ import { document, object, required, string, unknown } from '@atcute/lexicon-doc
 
 export default document({
   id: 'ooo.bsky.hidden.box',
+  revision: 1,
   defs: {
     main: object({
       properties: {

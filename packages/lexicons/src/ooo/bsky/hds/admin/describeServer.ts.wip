@@ -1,5 +1,0 @@
-// return similar fields to the pds describeServer:
-// 1. did
-// 2. description
-// 3. links to privacyPolicy and termsOfService
-// 4. contact, maybe with both url and email fields

@@ -1,6 +1,7 @@
 import {
   array,
   document,
+  integer,
   object,
   params,
   query,
@@ -10,29 +11,25 @@ import {
 } from '@atcute/lexicon-doc/builder'
 
 export default document({
-  id: 'ooo.bsky.hds.getRecords',
+  id: 'ooo.bsky.hds.listRecords',
   revision: 1,
   defs: {
     main: query({
       parameters: params({
         properties: {
-          uris: required(
-            array({
-              minLength: 1,
-              maxLength: 50,
-              items: string({ format: 'uri' }),
-            }),
-          ),
+          repo: required(string({ format: 'at-identifier' })),
+          collection: required(string({ format: 'nsid' })),
+          limit: integer({ minimum: 1, maximum: 100, default: 50 }),
+          cursor: string(),
         },
       }),
       output: {
         encoding: 'application/json',
         schema: object({
           properties: {
+            cursor: string(),
             boxes: required(
               array({
-                minLength: 1,
-                maxLength: 50,
                 items: ref({ ref: 'ooo.bsky.hidden.box' }),
               }),
             ),
