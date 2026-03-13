@@ -8,19 +8,9 @@
   "sortPackageJson": false,
 
   "sortImports": {
-    "groups": [
-      ["builtin", "bun"],
-      ["atcute"],
-      ["athidden"],
-      ["external"],
-      ["parent"],
-      ["sibling", "index"]
-    ],
+    "newlinesBetween": true,
+    "groups": ["builtin", "atcute", "athidden", "external", ["parent", "sibling", "index"]],
     "customGroups": [
-      {
-        "groupName": "bun",
-        "elementNamePattern": ["bun", "bun:*"]
-      },
       {
         "groupName": "atcute",
         "elementNamePattern": ["@atcute/**"]
