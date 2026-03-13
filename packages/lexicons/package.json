@@ -18,9 +18,10 @@
   "scripts": {
     "lex-generate": "lex-cli generate",
     "lex-export": "lex-cli export",
+    "append-to-index-ts": "cat index-append.ts >> lib/index.ts",
     "goat-parse-lexicons": "goat lex parse lexicons/ooo/bsky/**/*.json",
     "goat-publish-lexicons": "goat lex publish --update --lexicons-dir ./lexicons",
-    "build": "bun run lex-generate && bun run lex-export && bun run goat-parse-lexicons && tsc --project tsconfig.build.json && echo 'done!'",
+    "build": "bun run lex-generate && bun run lex-export && bun run append-to-index-ts && bun run goat-parse-lexicons && tsc --project tsconfig.build.json && echo 'done!'",
     "prepublish": "rm -rf dist lib lexicons; bun run build"
   },
   "dependencies": {

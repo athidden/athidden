@@ -21,6 +21,7 @@ export default document({
             maxLength: 5,
             items: union({
               refs: [
+                ref({ ref: '#everyoneRule' }),
                 ref({ ref: '#mentionRule' }),
                 ref({ ref: '#authorFollowsRule' }),
                 ref({ ref: '#followingAuthorRule' }),
@@ -32,6 +33,9 @@ export default document({
           createdAt: required(string({ format: 'datetime' })),
         },
       }),
+    }),
+    everyoneRule: object({
+      properties: {},
     }),
     mentionRule: object({
       properties: {},
