@@ -46,6 +46,20 @@ s.upsertRecord({
 })
 
 const publicRecord = {
+  $type: 'app.bsky.feed.post',
+  text: '',
+  langs: ['en'],
+  reply: {
+    root: {
+      cid: 'bafyreidv2ltxmbcdau3jk7aox5p25hcsabmvx7snnmyrzea4yycjgulnam',
+      uri: 'at://did:plc:opp67v6yfzmojdu54emvsvmk/app.bsky.feed.post/3mgoyp32i2s2w',
+    },
+    parent: {
+      cid: 'bafyreidv2ltxmbcdau3jk7aox5p25hcsabmvx7snnmyrzea4yycjgulnam',
+      uri: 'at://did:plc:opp67v6yfzmojdu54emvsvmk/app.bsky.feed.post/3mgoyp32i2s2w',
+    },
+  },
+  createdAt: '2026-03-10T10:18:10.038Z',
   'ooo.bsky.hidden.ref': {
     boxUri: `athidden://${s.did}/${hiddenRecord.$type}/3mgp5ikix7k2w`,
     valueCid: encodedCid,

@@ -388,12 +388,12 @@ export class Store {
       this.#isClosed = true
       try {
         this.#stmts.finalizeAll()
-      } catch (err: any) {
+      } catch (err) {
         this.#logger.warn({ err }, 'store close: failed to finalize statements')
       }
       try {
         this.#db.close(true)
-      } catch (err: any) {
+      } catch (err) {
         this.#logger.warn({ err }, 'store close: failed to close db')
       }
       this.#logger.debug('store closed!')
