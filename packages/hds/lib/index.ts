@@ -1,14 +1,54 @@
-import { XRPCRouter, json } from '@atcute/xrpc-server'
-import { cors } from '@atcute/xrpc-server/middlewares/cors'
+import pino from 'pino'
 
-import { OooBskyHdsGetRecords } from '@athidden/lexicons'
+export const rootLogger = pino({ level: 'trace' })
 
-const router = new XRPCRouter({ middlewares: [cors()] })
+import * as CBOR from '@atcute/cbor'
+import * as CID from '@atcute/cid'
 
-router.addQuery(OooBskyHdsGetRecords, {
-  async handler({ params }) {
-    return json({})
+const record = {
+  $type: 'app.bsky.feed.post',
+  text: "that's such a cool post, mx. Alternative Account! did you know that this reply can only be read by people who i'm mutuals with? i wonder if anyone will read this ... if you read this text me 'bicycle' for a picture of my fursona",
+  langs: ['en'],
+  reply: {
+    root: {
+      cid: 'bafyreidv2ltxmbcdau3jk7aox5p25hcsabmvx7snnmyrzea4yycjgulnam',
+      uri: 'at://did:plc:opp67v6yfzmojdu54emvsvmk/app.bsky.feed.post/3mgoyp32i2s2w',
+    },
+    parent: {
+      cid: 'bafyreidv2ltxmbcdau3jk7aox5p25hcsabmvx7snnmyrzea4yycjgulnam',
+      uri: 'at://did:plc:opp67v6yfzmojdu54emvsvmk/app.bsky.feed.post/3mgoyp32i2s2w',
+    },
   },
+  createdAt: '2026-03-10T10:18:10.038Z',
+  'ooo.bsky.authfetch.privateRecord': true,
+}
+
+const encodedValue = CBOR.encode(record)
+const encodedCid = (await CID.create(0x71, encodedValue)).bytes
+
+import { StorePool } from './db'
+
+using pool = new StorePool()
+
+const s = pool.store('did:plc:fusxjk227zn4qcbrll5xa77m')
+
+s.upsertRecord({
+  collection: 'app.bsky.feed.post',
+  rkey: '3mgp5ikix7k2w',
+  gateUri: 'at://did:plc:fusxjk227zn4qcbrll5xa77m/app.bsky.feed.threadgate/3lv5nhyxd6c2x',
+  encodedCid,
+  encodedValue,
+  create: false,
 })
 
-export default router
+console.log(s.getRecord({ collection: 'app.bsky.feed.post', rkey: '3mgp5ikix7k2w' }))
+
+console.log(
+  s.deleteRecord({
+    collection: 'app.bsky.feed.post',
+    rkey: '3mgp5ikix7k2w',
+    //swapCid: 'bafyreid3gcm6wn7wtlm57agu2lxo5uraqvoevxennavfet7olcovvlv6fq',
+  }),
+)
+
+console.log(s.getRecord({ collection: 'app.bsky.feed.post', rkey: '3mgp5ikix7k2w' }))
