@@ -29,7 +29,7 @@ import { type AtprotoDid, isDid } from '@atcute/lexicons/syntax'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { Result, lazy, rateLimitSafeFetch } from '../util'
+import { Dedupe, Result, lazy, rateLimitSafeFetch } from '../util'
 import { bluesky } from './client'
 
 const identityLogger = rootLogger.child({ name: 'bskyIdentity' })
@@ -228,17 +228,13 @@ async function performResolveIdentity(identifier: ActorIdentifier): Promise<Iden
   }
 }
 
-const pendingRequests = new Map<ActorIdentifier, Promise<IdentityResult>>()
+const identityDedupe = new Dedupe<ActorIdentifier, IdentityResult>({
+  perform: performResolveIdentity,
+  keyOf: (id) => id,
+})
 
-export async function resolveIdentity(identifier: ActorIdentifier): Promise<IdentityResult> {
-  const existingPromise = pendingRequests.get(identifier)
-  if (existingPromise != null) return existingPromise
-
-  const newPromise = performResolveIdentity(identifier)
-
-  pendingRequests.set(identifier, newPromise)
-
-  return newPromise.finally(() => pendingRequests.delete(identifier))
+export function resolveIdentity(identifier: ActorIdentifier): Promise<IdentityResult> {
+  return identityDedupe.use(identifier)
 }
 
 export function refreshIdentityFor(did: Did): boolean {

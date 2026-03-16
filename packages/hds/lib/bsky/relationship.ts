@@ -8,7 +8,7 @@ import { type Did } from '@athidden/lexicons'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { Coalescer, type CoalescerRequest, Result, Semaphore, chunk, lazy } from '../util'
+import { Coalesce, type CoalescerRequest, Result, Semaphore, chunk, lazy } from '../util'
 import { bluesky } from './client'
 
 const relationshipLogger = rootLogger.child({ name: 'bskyRelationship' })
@@ -282,7 +282,7 @@ async function performRequests(requests: Request[]) {
   }
 }
 
-const performCoalescer = new Coalescer<CanonicalKey, RelationshipResult>({
+const performCoalesce = new Coalesce<CanonicalKey, RelationshipResult>({
   action: performRequests,
   keyOf: (params) => params.key,
   delay: ASYNC_COLLECTION_DELAY_MS,
@@ -305,7 +305,7 @@ export async function getRelationship(a: Did, b: Did): Promise<RelationshipResul
     return Result.ok(cached.a === a ? cached : flipRelationship(cached))
   }
 
-  const result = await performCoalescer.use(canonKey)
+  const result = await performCoalesce.use(canonKey)
   if (result.ok && result.value.a !== a) {
     return Result.ok(flipRelationship(result.value))
   } else {

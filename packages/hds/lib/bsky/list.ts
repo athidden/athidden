@@ -6,7 +6,7 @@ import { BlueMicrocosmLinksGetBacklinks } from '@atcute/microcosm'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { type Did, type PubRUri, Result, lazy } from '../util'
+import { Dedupe, type Did, type PubRUri, Result, lazy } from '../util'
 import { asResult, constellation } from './client'
 import { getPublicRecord } from './get'
 import { parseUri } from './uri'
@@ -86,7 +86,21 @@ export type ActorOnListResult = Result<boolean, 'not-found' | 'invalid-uri' | 'f
  *    that its `list` field points to the target list - matching both rkey and
  *    owner DID.
  */
-export async function isActorOnList(actor: Did, list: PubRUri): Promise<ActorOnListResult> {
+
+type ListMembershipKey = { actor: Did; list: PubRUri }
+
+const listDedupe = new Dedupe<ListMembershipKey, ActorOnListResult>({
+  perform: performIsActorOnList,
+  keyOf: ({ actor, list }) => `${actor}/${list}`,
+})
+
+export function isActorOnList(actor: Did, list: PubRUri): Promise<ActorOnListResult> {
+  return listDedupe.use({ actor, list })
+}
+
+async function performIsActorOnList(key: ListMembershipKey): Promise<ActorOnListResult> {
+  const { actor, list } = key
+
   const parsedListResult = parseUri({ uri: list, type: 'public' })
   if (!parsedListResult.ok) {
     return Result.mapErr(parsedListResult, () => 'invalid-uri')
