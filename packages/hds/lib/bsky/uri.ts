@@ -33,9 +33,9 @@ export type ParseUriResult<T extends ParseUriOptions> = Result<
 export function parseUri<const T extends ParseUriOptions>(options: T): ParseUriResult<T> {
   const { type, level, uri } = options
 
-  const parseRes = parseMaybeHiddenResourceUri(uri)
-  if (!parseRes.ok) {
-    return Result.mapErr(parseRes, () => 'invalid-uri')
+  const parsedUriResult = parseMaybeHiddenResourceUri(uri)
+  if (!parsedUriResult.ok) {
+    return Result.mapErr(parsedUriResult, () => 'invalid-uri')
   }
 
   const hidden = hasHiddenPrefix(uri)
@@ -43,7 +43,7 @@ export function parseUri<const T extends ParseUriOptions>(options: T): ParseUriR
     return Result.err('bad-uri-type')
   }
 
-  const { repo, collection, rkey } = parseRes.value
+  const { repo, collection, rkey } = parsedUriResult.value
 
   if (level === 'rkey' || level == null) {
     if (!collection) return Result.err('missing-collection')

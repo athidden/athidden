@@ -127,7 +127,7 @@ CREATE INDEX IF NOT EXISTS relationships_fetched_at ON relationships (fetched_at
     stmtUpsert.finalize()
     stmtGc.finalize()
     sql.close()
-    relationshipLogger.debug('closed database')
+    relationshipLogger.trace('closed database')
   })
 
   return { stmtGet, stmtUpsert }
@@ -144,9 +144,9 @@ async function fetchRelationships(
   if (queries.size < 1 || queries.size > MAX_OTHERS_PER_REQUEST) {
     relationshipLogger.warn(
       { size: queries.size },
-      'fetchRelationships called with too many queries, throwing',
+      'fetchRelationships called with invalid query count, throwing',
     )
-    throw new Error(`fetchRelationships called with too many queries: ${queries.size}`)
+    throw new Error(`fetchRelationships called with invalid query count: ${queries.size}`)
   }
 
   try {
