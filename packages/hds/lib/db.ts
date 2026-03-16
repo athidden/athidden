@@ -13,7 +13,7 @@ import {
   Box,
   type CanRUri,
   type RKey,
-  type Result,
+  Result,
   cborDecode,
   cidBlob2String,
   cidString2Blob,
@@ -418,12 +418,11 @@ export class Store {
       throw new Error(`store ${name} is closed`)
     }
     this.#updateLastUsed()
-    const context = { fn: name, ...pick(params, ['collection', 'rkey', 'create', 'swapCid']) }
     try {
-      this.#logger.trace(context, 'performing store action')
       return action()
     } catch (err: any) {
       const message = `store ${name}: ${err?.message || err}`
+      const context = pick(params, ['collection', 'rkey', 'create', 'swapCid'])
       this.#logger.error({ err, ...context }, message)
       throw Object.assign(new Error(message), { did: this.did, ...context })
     }
@@ -437,8 +436,7 @@ export class Store {
 
       const result = this.#stmts.getRecord.get({ collection, rkey })
       if (result == null) {
-        this.#logger.trace({ fn: 'getRecord', collection, rkey }, 'not found!')
-        return { ok: false, error: 'not-found' }
+        return Result.err('not-found')
       }
 
       const box: Box = Box.parse({
@@ -448,7 +446,7 @@ export class Store {
         value: cborDecode(result.value),
       })
 
-      return { ok: true, value: box }
+      return Result.ok(box)
     })
   }
 
@@ -468,8 +466,7 @@ export class Store {
             swapCid: encodedSwapCid,
           })
           if (doCidsMatch !== 1) {
-            this.#logger.trace({ fn: 'upsertRecord', collection, rkey }, 'conflict!')
-            return { ok: false, error: 'conflict' }
+            return Result.err('conflict')
           }
         }
 
@@ -486,7 +483,7 @@ export class Store {
           this.#stmts.upsertRecord.run(values)
         }
 
-        return { ok: true, value: undefined }
+        return Result.ok(undefined)
       })
 
       return tx.immediate()
@@ -506,18 +503,16 @@ export class Store {
           swapCid: cidString2Blob(swapCid),
         })
         if (changes < 1) {
-          this.#logger.trace({ fn: 'deleteRecord', collection, rkey }, 'conflict!')
-          return { ok: false, error: 'conflict' }
+          return Result.err('conflict')
         }
       } else {
         const { changes } = this.#stmts.deleteRecord.run({ collection, rkey })
         if (changes < 1) {
-          this.#logger.trace({ fn: 'deleteRecord', collection, rkey }, 'not found!')
-          return { ok: false, error: 'not-found' }
+          return Result.err('not-found')
         }
       }
 
-      return { ok: true, value: undefined }
+      return Result.ok(undefined)
     })
   }
 

@@ -8,7 +8,7 @@ import { type Did } from '@athidden/lexicons'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { Coalescer, type CoalescerRequest, type Result, Semaphore, chunk, lazy } from '../util'
+import { Coalescer, type CoalescerRequest, Result, Semaphore, chunk, lazy } from '../util'
 import { bluesky } from './client'
 
 const relationshipLogger = rootLogger.child({ name: 'bskyRelationship' })
@@ -133,7 +133,7 @@ CREATE INDEX IF NOT EXISTS relationships_fetched_at ON relationships (fetched_at
   return { stmtGet, stmtUpsert }
 })
 
-const notFoundResult: RelationshipResult = Object.freeze({ ok: false, error: 'not-found' })
+const notFoundResult: RelationshipResult = Result.err('not-found')
 
 const MAX_OTHERS_PER_REQUEST = 30
 
@@ -158,7 +158,7 @@ async function fetchRelationships(
     })
 
     if (!res.ok) {
-      if (res.data.error === 'ActorNotFound') {
+      if (res.data.error === 'ActorNotFound' || res.status === 404) {
         relationshipLogger.debug(
           { actor },
           'app.bsky.graph.getRelationships failed with ActorNotFound',
@@ -206,7 +206,7 @@ async function fetchRelationships(
         const resolver = queries.get(target)
         if (resolver != null) {
           queries.delete(target)
-          resolver.resolve({ ok: true, value: canonShip })
+          resolver.resolve(Result.ok(canonShip))
         }
       } else if (r.$type === 'app.bsky.graph.defs#notFoundActor') {
         const target = r.actor
@@ -225,9 +225,9 @@ async function fetchRelationships(
     }
 
     queries.forEach((resolver) => resolver.resolve(notFoundResult))
-  } catch (err) {
+  } catch (err: any) {
     if (!(err instanceof ClientResponseError)) {
-      relationshipLogger.debug({ err }, 'fetchRelationships caught unknown error')
+      relationshipLogger.debug('fetchRelationships caught unknown error: ' + (err?.message || err))
     }
     queries.forEach((resolver) => resolver.reject(err))
   }
@@ -302,12 +302,12 @@ export async function getRelationship(a: Did, b: Did): Promise<RelationshipResul
       bBlocksA: row.bBlocksA !== 0,
       fetchedAt: row.fetchedAt,
     }
-    return { ok: true, value: cached.a === a ? cached : flipRelationship(cached) }
+    return Result.ok(cached.a === a ? cached : flipRelationship(cached))
   }
 
   const result = await performCoalescer.use(canonKey)
   if (result.ok && result.value.a !== a) {
-    return { ok: true, value: flipRelationship(result.value) }
+    return Result.ok(flipRelationship(result.value))
   } else {
     return result
   }

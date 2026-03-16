@@ -15,6 +15,7 @@ import {
   type DidDocumentResolver,
   DidNotFoundError,
   DocumentNotFoundError,
+  FailedDocumentResolutionError,
   FailedHandleResolutionError,
   type HandleResolver,
   ImproperDidError,
@@ -28,7 +29,7 @@ import { type AtprotoDid, isDid } from '@atcute/lexicons/syntax'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { type Result, lazy, rateLimitSafeFetch } from '../util'
+import { Result, lazy, rateLimitSafeFetch } from '../util'
 import { bluesky } from './client'
 
 const identityLogger = rootLogger.child({ name: 'bskyIdentity' })
@@ -140,7 +141,7 @@ CREATE INDEX IF NOT EXISTS identities_fetched_at ON identities (fetched_at);
   return { stmtGetByDid, stmtGetByHandle, stmtUpsert, stmtDelete }
 })
 
-type IdentityResult = Result<Identity, 'not-found' | 'invalid'>
+export type IdentityResult = Result<Identity, 'not-found' | 'invalid' | 'failed'>
 
 async function performResolveIdentity(identifier: ActorIdentifier): Promise<IdentityResult> {
   try {
@@ -149,16 +150,13 @@ async function performResolveIdentity(identifier: ActorIdentifier): Promise<Iden
       : identityCache().stmtGetByHandle.get({ handle: identifier })
 
     if (row != null) {
-      return {
-        ok: true,
-        value: {
-          handle: row.handle as Handle,
-          did: row.did as Did,
-          didDoc: JSON.parse(row.didDoc),
-          pds: row.pds,
-          hds: row.hds,
-        },
-      }
+      return Result.ok({
+        handle: row.handle as Handle,
+        did: row.did as Did,
+        didDoc: JSON.parse(row.didDoc),
+        pds: row.pds,
+        hds: row.hds,
+      })
     }
 
     const identifierIsDid = isDid(identifier)
@@ -189,8 +187,8 @@ async function performResolveIdentity(identifier: ActorIdentifier): Promise<Iden
               'reported handle resolved to different did',
             )
           }
-        } catch {
-          identityLogger.debug({ reportedHandle, did }, 'reported handle did not resolve')
+        } catch (err) {
+          identityLogger.debug({ err, reportedHandle, did }, 'reported handle did not resolve')
         }
       }
     } else if (reportedHandle === identifier) {
@@ -207,7 +205,7 @@ async function performResolveIdentity(identifier: ActorIdentifier): Promise<Iden
       hds: identity.hds,
     })
 
-    return { ok: true, value: identity }
+    return Result.ok(identity)
   } catch (err: any) {
     if (
       err instanceof UnsupportedDidMethodError ||
@@ -215,14 +213,17 @@ async function performResolveIdentity(identifier: ActorIdentifier): Promise<Iden
       err instanceof InvalidResolvedHandleError ||
       err instanceof AmbiguousHandleError
     ) {
-      identityLogger.trace({ err, identifier }, 'invalid!')
-      return { ok: false, error: 'invalid', cause: err }
+      return Result.err('invalid', err)
     }
     if (err instanceof DocumentNotFoundError || err instanceof DidNotFoundError) {
-      identityLogger.trace({ err, identifier }, 'not found!')
-      return { ok: false, error: 'not-found', cause: err }
+      return Result.err('not-found', err)
     }
-    identityLogger.debug({ err, identifier }, 'performResolveIdentity caught unknown error')
+    if (
+      err instanceof FailedDocumentResolutionError ||
+      err instanceof FailedHandleResolutionError
+    ) {
+      return Result.err('failed', err)
+    }
     throw err
   }
 }
