@@ -2,7 +2,7 @@ import { AppBskyFeedPost } from '@atcute/bluesky'
 
 import { getPublicRecord } from './bsky/get'
 import { resolveIdentity } from './bsky/identity'
-import { isActorOnList } from './bsky/list'
+import { isOnList } from './bsky/list'
 import { getRelationship } from './bsky/relationship'
 import { StorePool } from './db'
 import { CBOR, CID, Result } from './util'
@@ -164,5 +164,5 @@ const meeee = Result.unwrap(await resolveIdentity('lua.pet'))
 
 console.log(
   'they hate me noooo:',
-  await isActorOnList(meeee.did, 'at://cblovedones.bsky.social/app.bsky.graph.list/3mg2nmu35lz2j'),
+  await isOnList(meeee.did, 'at://cblovedones.bsky.social/app.bsky.graph.list/3mg2nmu35lz2j'),
 )

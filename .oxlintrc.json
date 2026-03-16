@@ -6,6 +6,7 @@
     "perf": "warn"
   },
   "rules": {
-    "sort-imports": ["error", { "ignoreDeclarationSort": true, "ignoreMemberSort": false }]
+    "sort-imports": ["warn", { "ignoreDeclarationSort": true, "ignoreMemberSort": false }],
+    "no-await-in-loop": "off"
   }
 }

@@ -1,10 +1,9 @@
 import type { ActorIdentifier, Did, Nsid, RecordKey } from '@atcute/lexicons'
-import { isDid } from '@atcute/lexicons/syntax'
 
 import { hasHiddenPrefix, parseMaybeHiddenResourceUri } from '@athidden/lexicons'
 
 import { Result } from '../util/result'
-import { resolveIdentity } from './identity'
+import { resolveDid } from './identity'
 
 export type ParseUriOptions = {
   type?: 'public' | 'hidden' | 'both'
@@ -52,13 +51,7 @@ export function parseUri<const T extends ParseUriOptions>(options: T): ParseUriR
     if (!collection) return Result.err('missing-collection')
   }
 
-  const resolveDid = async () => {
-    if (isDid(repo)) {
-      return Result.ok(repo)
-    } else {
-      return Result.map(await resolveIdentity(repo), (value) => value.did)
-    }
-  }
+  const boundResolveDid = () => resolveDid(repo)
 
-  return Result.ok({ hidden, repo, collection, rkey, resolveDid } as any)
+  return Result.ok({ hidden, repo, collection, rkey, resolveDid: boundResolveDid } as any)
 }

@@ -74,6 +74,13 @@ CREATE INDEX IF NOT EXISTS list_memberships_fetched_at ON list_memberships (fetc
 
 export type ActorOnListResult = Result<boolean, 'not-found' | 'invalid-uri' | 'failed'>
 
+type ListMembershipKey = { actor: Did; list: PubRUri }
+
+const listDedupe = new Dedupe<ListMembershipKey, ActorOnListResult>({
+  perform: performIsOnList,
+  keyOf: ({ actor, list }) => `${actor}/${list}`,
+})
+
 /**
  * Checks whether `actor` is a member of the given Bluesky list.
  *
@@ -86,19 +93,11 @@ export type ActorOnListResult = Result<boolean, 'not-found' | 'invalid-uri' | 'f
  *    that its `list` field points to the target list - matching both rkey and
  *    owner DID.
  */
-
-type ListMembershipKey = { actor: Did; list: PubRUri }
-
-const listDedupe = new Dedupe<ListMembershipKey, ActorOnListResult>({
-  perform: performIsActorOnList,
-  keyOf: ({ actor, list }) => `${actor}/${list}`,
-})
-
-export function isActorOnList(actor: Did, list: PubRUri): Promise<ActorOnListResult> {
+export function isOnList(actor: Did, list: PubRUri): Promise<ActorOnListResult> {
   return listDedupe.use({ actor, list })
 }
 
-async function performIsActorOnList(key: ListMembershipKey): Promise<ActorOnListResult> {
+async function performIsOnList(key: ListMembershipKey): Promise<ActorOnListResult> {
   const { actor, list } = key
 
   const parsedListResult = parseUri({ uri: list, type: 'public' })
@@ -132,8 +131,6 @@ async function performIsActorOnList(key: ListMembershipKey): Promise<ActorOnList
 
   return result
 }
-
-/* oxlint-disable no-await-in-loop */
 
 /**
  * Queries Constellation backlinks and verifies candidate `listitem` records.

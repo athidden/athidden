@@ -1,38 +1,21 @@
 import type { Did, OooBskyHiddenGate } from '@athidden/lexicons'
 
+import { resolveDid } from './bsky/identity'
+import { isOnList } from './bsky/list'
+import { getRelationship } from './bsky/relationship'
+import { rootLogger } from './logger'
+import { Result } from './util'
+
+const gateLogger = rootLogger.child({ name: 'gate' })
+
 export interface GateParams {
   gate: OooBskyHiddenGate.Main
   author: Did
   viewer: Did
 }
 
-/*
-
-import type { } from '@atcute/bluesky'
-import { AppBskyFeedGetPostThread, AppBskyFeedPost } from '@atcute/bluesky'
-import { Client, ok, simpleFetchHandler } from '@atcute/client'
-
-import { type CanonicalResourceUri, type Did, OooBskyHiddenGate } from '@athidden/lexicons'
-
-const rpc = new Client({ handler: simpleFetchHandler({ service: 'https://public.api.bsky.app' }) })
-
-// TODO: implement xrpc authentication logic
-// TODO: implement gate logic
-
-export interface GateParams {
-  gate: OooBskyHiddenGate.Main
-  author: Did
-  viewer: Did
-  post?: {
-    uri: CanonicalResourceUri
-    record: AppBskyFeedPost.Main
-  }
-}
-
-export async function doesGateAllowViewer(context: GateParams): Promise<boolean> {
-  const { gate, author, viewer, post } = context
-
-  if (viewer === author) {
+export async function doesGateAllowViewer({ gate, author, viewer }: GateParams): Promise<boolean> {
+  if (author === viewer) {
     return true
   }
 
@@ -41,18 +24,61 @@ export async function doesGateAllowViewer(context: GateParams): Promise<boolean>
   }
 
   for (const rule of gate.allow) {
-    const type = rule.$type
-    if (type === 'ooo.bsky.hidden.gate#everyoneRule') {
-      return true
-    } else if (type === 'ooo.bsky.hidden.gate#authorFollowsRule') {
-      rpc.get('app.bsky.graph.getRelationships')
-    } else if (type === 'ooo.bsky.hidden.gate#followingAuthorRule') {
-    } else if (type === 'ooo.bsky.hidden.gate#mutualsRule') {
-    } else if (type === 'ooo.bsky.hidden.gate#actorRule') {
-    } else if (type === 'ooo.bsky.hidden.gate#listRule') {
+    switch (rule.$type) {
+      case 'ooo.bsky.hidden.gate#everyoneRule':
+        return true
+
+      case 'ooo.bsky.hidden.gate#authorFollowsRule': {
+        const result = await getRelationship(author, viewer)
+        if (!result.ok) {
+          gateLogger.debug({ author, viewer }, 'getRelationship failed: ' + Result.toString(result))
+        } else {
+          if (result.value.aFollowsB) return true
+        }
+        break
+      }
+
+      case 'ooo.bsky.hidden.gate#followingAuthorRule': {
+        const result = await getRelationship(viewer, author)
+        if (!result.ok) {
+          gateLogger.debug({ viewer, author }, 'getRelationship failed: ' + Result.toString(result))
+        } else {
+          if (result.value.aFollowsB) return true
+        }
+        break
+      }
+
+      case 'ooo.bsky.hidden.gate#mutualsRule': {
+        const result = await getRelationship(author, viewer)
+        if (!result.ok) {
+          gateLogger.debug({ author, viewer }, 'getRelationship failed: ' + Result.toString(result))
+        } else {
+          if (result.value.aFollowsB && result.value.bFollowsA) return true
+        }
+        break
+      }
+
+      case 'ooo.bsky.hidden.gate#listRule': {
+        const result = await isOnList(viewer, rule.list)
+        if (!result.ok) {
+          gateLogger.debug({ list: rule.list }, 'isOnList failed: ' + Result.toString(result))
+        } else {
+          if (result.value) return true
+        }
+        break
+      }
+
+      case 'ooo.bsky.hidden.gate#actorRule': {
+        const result = await resolveDid(rule.actor)
+        if (!result.ok) {
+          gateLogger.debug({ actor: rule.actor }, 'resolveDid failed: ' + Result.toString(result))
+        } else {
+          if (result.value === viewer) return true
+        }
+        break
+      }
     }
   }
 
   return false
 }
- */

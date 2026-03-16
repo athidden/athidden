@@ -1,7 +1,5 @@
 import type { FetchHandler } from '@atcute/client'
 
-/* oxlint-disable no-await-in-loop */
-
 export type RateLimitSafeFetchHandlerOptions = RateLimitSafeWrapperOptions & {
   handler: FetchHandler
 }

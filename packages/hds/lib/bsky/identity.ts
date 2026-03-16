@@ -143,6 +143,8 @@ CREATE INDEX IF NOT EXISTS identities_fetched_at ON identities (fetched_at);
 
 export type IdentityResult = Result<Identity, 'not-found' | 'invalid' | 'failed'>
 
+export type DidResult = Result<Did, 'not-found' | 'invalid' | 'failed'>
+
 async function performResolveIdentity(identifier: ActorIdentifier): Promise<IdentityResult> {
   try {
     const row = isDid(identifier)
@@ -235,6 +237,14 @@ const identityDedupe = new Dedupe<ActorIdentifier, IdentityResult>({
 
 export function resolveIdentity(identifier: ActorIdentifier): Promise<IdentityResult> {
   return identityDedupe.use(identifier)
+}
+
+export async function resolveDid(identifier: ActorIdentifier): Promise<DidResult> {
+  if (isDid(identifier)) {
+    return Result.ok(identifier)
+  } else {
+    return Result.map(await resolveIdentity(identifier), (identity) => identity.did)
+  }
 }
 
 export function refreshIdentityFor(did: Did): boolean {
