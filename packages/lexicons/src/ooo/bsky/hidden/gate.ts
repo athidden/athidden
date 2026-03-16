@@ -17,27 +17,26 @@ export default document({
       key: 'any',
       record: object({
         properties: {
-          allow: array({
-            maxLength: 5,
-            items: union({
-              refs: [
-                ref({ ref: '#everyoneRule' }),
-                ref({ ref: '#mentionRule' }),
-                ref({ ref: '#authorFollowsRule' }),
-                ref({ ref: '#followingAuthorRule' }),
-                ref({ ref: '#mutualsRule' }),
-                ref({ ref: '#listRule' }),
-              ],
+          allow: required(
+            array({
+              maxLength: 5,
+              items: union({
+                refs: [
+                  ref({ ref: '#everyoneRule' }),
+                  ref({ ref: '#authorFollowsRule' }),
+                  ref({ ref: '#followingAuthorRule' }),
+                  ref({ ref: '#mutualsRule' }),
+                  ref({ ref: '#listRule' }),
+                  ref({ ref: `#actorRule` }),
+                ],
+              }),
             }),
-          }),
+          ),
           createdAt: required(string({ format: 'datetime' })),
         },
       }),
     }),
     everyoneRule: object({
-      properties: {},
-    }),
-    mentionRule: object({
       properties: {},
     }),
     authorFollowsRule: object({
@@ -51,7 +50,12 @@ export default document({
     }),
     listRule: object({
       properties: {
-        list: required(string({ format: 'uri' })),
+        list: required(string({ format: 'at-uri' })),
+      },
+    }),
+    actorRule: object({
+      properties: {
+        actor: required(string({ format: 'at-identifier' })),
       },
     }),
   },

@@ -36,7 +36,7 @@ export type CanonicalHiddenResourceUri = `athidden://${Did}/${Nsid}/${RecordKey}
 
 export type CanonicalMaybeHiddenResourceUri = CanonicalResourceUri | CanonicalHiddenResourceUri
 
-function hasHiddenPrefix(input: string): boolean {
+export function hasHiddenPrefix(input: string): boolean {
   return input.startsWith('athidden://')
 }
 

@@ -23,6 +23,7 @@
         "@atcute/identity": "^1.1.3",
         "@atcute/identity-resolver": "^1.2.2",
         "@atcute/lexicons": "^1.2.9",
+        "@atcute/microcosm": "^1.0.3",
         "@atcute/tid": "^1.1.2",
         "@atcute/xrpc-server": "^0.1.11",
         "@athidden/lexicons": "workspace:*",
@@ -44,22 +45,6 @@
       "devDependencies": {
         "@atcute/lex-cli": "^2.5.3",
         "@atcute/lexicon-doc": "^2.1.2",
-        "@types/bun": "latest",
-        "typescript": "latest",
-      },
-    },
-    "packages/utils": {
-      "name": "@athidden/utils",
-      "version": "0.0.1",
-      "dependencies": {
-        "@atcute/atproto": "^3.1.10",
-        "@atcute/bluesky": "^3.3.0",
-        "@atcute/cbor": "^2.3.2",
-        "@atcute/cid": "^2.4.1",
-        "@atcute/client": "^4.2.1",
-        "@atcute/lexicons": "^1.2.9",
-      },
-      "devDependencies": {
         "@types/bun": "latest",
         "typescript": "latest",
       },
@@ -92,6 +77,8 @@
 
     "@atcute/lexicons": ["@atcute/lexicons@1.2.9", "", { "dependencies": { "@atcute/uint8array": "^1.1.1", "@atcute/util-text": "^1.1.1", "@standard-schema/spec": "^1.1.0", "esm-env": "^1.2.2" } }, "sha512-/RRHm2Cw9o8Mcsrq0eo8fjS9okKYLGfuFwrQ0YoP/6sdSDsXshaTLJsvLlcUcaDaSJ1YFOuHIo3zr2Om2F/16g=="],
 
+    "@atcute/microcosm": ["@atcute/microcosm@1.0.3", "", { "dependencies": { "@atcute/lexicons": "^1.2.9" } }, "sha512-INgmCB17B/zoXc6gXRJ569eZPRGCIt21kmvoc8mBZngl+zmpcMhFbJSAZBa5d92Li5ugi9mOzLMFj6JPdltbNg=="],
+
     "@atcute/mst": ["@atcute/mst@1.0.0", "", { "dependencies": { "@atcute/cbor": "^2.3.2", "@atcute/cid": "^2.4.1", "@atcute/uint8array": "^1.1.1" } }, "sha512-pMce2efib+dmKtnGnIvJZitVncJkpr3AmhyfgfYllni8KzsaDGsJmuGavSVpuojAhQe+6jYwHFtpm/beiiH4uw=="],
 
     "@atcute/multibase": ["@atcute/multibase@1.1.8", "", { "dependencies": { "@atcute/uint8array": "^1.1.1" } }, "sha512-pJgtImMZKCjqwRbu+2GzB+4xQjKBXDwdZOzeqe0u97zYKRGftpGYGvYv3+pMe2xXe+msDyu7Nv8iJp+U14otTA=="],
@@ -115,8 +102,6 @@
     "@athidden/hds": ["@athidden/hds@workspace:packages/hds"],
 
     "@athidden/lexicons": ["@athidden/lexicons@workspace:packages/lexicons"],
-
-    "@athidden/utils": ["@athidden/utils@workspace:packages/utils"],
 
     "@badrap/valita": ["@badrap/valita@0.4.6", "", {}, "sha512-4kdqcjyxo/8RQ8ayjms47HCWZIF5981oE5nIenbfThKDxWXtEHKipAOWlflpPJzZx9y/JWYQkp18Awr7VuepFg=="],
 

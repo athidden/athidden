@@ -29,6 +29,7 @@
     "@atcute/identity": "^1.1.3",
     "@atcute/identity-resolver": "^1.2.2",
     "@atcute/lexicons": "^1.2.9",
+    "@atcute/microcosm": "^1.0.3",
     "@atcute/tid": "^1.1.2",
     "@atcute/xrpc-server": "^0.1.11",
     "@athidden/lexicons": "workspace:*",

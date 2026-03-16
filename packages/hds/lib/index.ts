@@ -1,16 +1,12 @@
-import pino from 'pino'
-
-export const rootLogger = pino({ level: 'trace' })
+import { resolveIdentity } from './bsky/identity'
+import { getRelationship } from './bsky/relationship'
+import { StorePool } from './db'
+import { CBOR, CID } from './util'
 
 // TODO: implement main service setup and logic
 // TODO: create server, serve .well-known/ and static files
 // TODO: rate limiting logic to prevent evil shit
 // TODO: limit body size
-
-import * as CBOR from '@atcute/cbor'
-import * as CID from '@atcute/cid'
-
-import { StorePool } from './db'
 
 using pool = new StorePool()
 
@@ -78,3 +74,73 @@ console.log(
 )
 
 console.log('getRecord2', s.getRecord({ collection: 'app.bsky.feed.post', rkey: '3mgp5ikix7k2w' }))
+
+const meAndMyWife = getRelationship(
+  'did:plc:fusxjk227zn4qcbrll5xa77m',
+  'did:plc:h6wtgjicihpn2fx5ubb7rwow',
+)
+const myWifeAndMe = getRelationship(
+  'did:plc:h6wtgjicihpn2fx5ubb7rwow',
+  'did:plc:fusxjk227zn4qcbrll5xa77m',
+)
+
+const someoneFollowingMe = getRelationship(
+  'did:plc:fusxjk227zn4qcbrll5xa77m',
+  'did:plc:ecdbtk2kh6la4o2fxjqax7kp',
+)
+const someoneFollowingMeReversed = getRelationship(
+  'did:plc:ecdbtk2kh6la4o2fxjqax7kp',
+  'did:plc:fusxjk227zn4qcbrll5xa77m',
+)
+
+const idkThisGuy = getRelationship(
+  'did:plc:fusxjk227zn4qcbrll5xa77m',
+  'did:plc:zrkzsaqqa33namszrfxy525u',
+)
+
+for (let i = 0; i < 1000; i++) {
+  const meAndMyWife = getRelationship(
+    'did:plc:fusxjk227zn4qcbrll5xa77m',
+    'did:plc:h6wtgjicihpn2fx5ubb7rwow',
+  )
+  const myWifeAndMe = getRelationship(
+    'did:plc:h6wtgjicihpn2fx5ubb7rwow',
+    'did:plc:fusxjk227zn4qcbrll5xa77m',
+  )
+
+  const someoneFollowingMe = getRelationship(
+    'did:plc:fusxjk227zn4qcbrll5xa77m',
+    'did:plc:ecdbtk2kh6la4o2fxjqax7kp',
+  )
+  const someoneFollowingMeReversed = getRelationship(
+    'did:plc:ecdbtk2kh6la4o2fxjqax7kp',
+    'did:plc:fusxjk227zn4qcbrll5xa77m',
+  )
+
+  const idkThisGuy = getRelationship(
+    'did:plc:fusxjk227zn4qcbrll5xa77m',
+    'did:plc:zrkzsaqqa33namszrfxy525u',
+  )
+}
+
+const myWifeAndHerFriend = getRelationship(
+  'did:plc:h6wtgjicihpn2fx5ubb7rwow',
+  'did:plc:ecdbtk2kh6la4o2fxjqax7kp',
+)
+
+console.log({
+  meAndMyWife: await meAndMyWife,
+  myWifeAndMe: await myWifeAndMe,
+  someoneFollowingMe: await someoneFollowingMe,
+  someoneFollowingMeReversed: await someoneFollowingMeReversed,
+  idkThisGuy: await idkThisGuy,
+  myWifeAndHerFriend: await myWifeAndHerFriend,
+})
+
+console.log(await resolveIdentity('did:plc:fusxjk227zn4qcbrll5xa77m'))
+console.log(await resolveIdentity('lua.pet'))
+try {
+  console.log(await resolveIdentity('bsky.ooo'))
+} catch (error: any) {
+  console.error('expected error:', error?.message)
+}

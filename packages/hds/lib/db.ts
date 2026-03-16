@@ -8,7 +8,7 @@ import { type Cid, type Did, type Nsid } from '@athidden/lexicons'
 import { z } from 'zod'
 
 import { env } from './env'
-import { rootLogger } from './index'
+import { rootLogger } from './logger'
 import {
   Box,
   type CanRUri,
@@ -24,9 +24,15 @@ import {
   zNsid,
   zRKey,
   zUint8Array,
-} from './utils'
+} from './util'
+
+const dbLogger = rootLogger.child({ name: 'db' })
 
 const SQL_SCHEMA = `
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA busy_timeout = 5000;
+
 CREATE TABLE IF NOT EXISTS records (
   collection TEXT NOT NULL,
   rkey TEXT NOT NULL,
@@ -41,48 +47,42 @@ CREATE INDEX IF NOT EXISTS records_collection ON records (collection);
 CREATE INDEX IF NOT EXISTS records_cursor ON records (created_at DESC, collection DESC, rkey DESC);
 `
 
-const SQL_PRAGMAS = `
-PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
-PRAGMA busy_timeout = 5000;
-`
-
-function prepareStatements(db: Database) {
-  const getRecord = db.prepare<
+function prepareStatements(sql: Database) {
+  const getRecord = sql.prepare<
     { gateUri: string; cid: Uint8Array; value: Uint8Array },
     { collection: string; rkey: string }
   >(
     'SELECT gate_uri AS gateUri, cid, value FROM records WHERE collection = $collection AND rkey = $rkey',
   )
 
-  const checkCid = db.prepare<1, { collection: string; rkey: string; swapCid: Uint8Array }>(
+  const checkCid = sql.prepare<1, { collection: string; rkey: string; swapCid: Uint8Array }>(
     'SELECT 1 FROM records WHERE collection = $collection AND rkey = $rkey AND cid = $swapCid',
   )
 
-  const createRecord = db.prepare<
+  const createRecord = sql.prepare<
     void,
     { collection: string; rkey: string; gateUri: string; cid: Uint8Array; value: Uint8Array }
   >(
     'INSERT INTO records (collection, rkey, gate_uri, cid, value) VALUES ($collection, $rkey, $gateUri, $cid, $value)',
   )
 
-  const upsertRecord = db.prepare<
+  const upsertRecord = sql.prepare<
     void,
     { collection: string; rkey: string; gateUri: string; cid: Uint8Array; value: Uint8Array }
   >(
     'INSERT OR REPLACE INTO records (collection, rkey, gate_uri, cid, value) VALUES ($collection, $rkey, $gateUri, $cid, $value)',
   )
 
-  const deleteRecord = db.prepare<void, { collection: string; rkey: string }>(
+  const deleteRecord = sql.prepare<void, { collection: string; rkey: string }>(
     'DELETE FROM records WHERE collection = $collection AND rkey = $rkey',
   )
 
-  const checkCidAndDeleteRecord = db.prepare<
+  const checkCidAndDeleteRecord = sql.prepare<
     void,
     { collection: string; rkey: string; swapCid: Uint8Array }
   >('DELETE FROM records WHERE collection = $collection AND rkey = $rkey AND cid = $swapCid')
 
-  const listRecords = db.prepare<
+  const listRecords = sql.prepare<
     {
       collection: string
       rkey: string
@@ -97,7 +97,7 @@ function prepareStatements(db: Database) {
       'WHERE collection = $collection ORDER BY created_at DESC, rkey DESC LIMIT $limit',
   )
 
-  const listRecordsCursor = db.prepare<
+  const listRecordsCursor = sql.prepare<
     {
       collection: string
       rkey: string
@@ -112,7 +112,7 @@ function prepareStatements(db: Database) {
       'WHERE collection = $collection AND (created_at, rkey) < ($createdAt, $rkey) ORDER BY created_at DESC, rkey DESC LIMIT $limit',
   )
 
-  const exportRecords = db.prepare<
+  const exportRecords = sql.prepare<
     {
       collection: string
       rkey: string
@@ -127,7 +127,7 @@ function prepareStatements(db: Database) {
       'ORDER BY created_at DESC, collection DESC, rkey DESC LIMIT $limit',
   )
 
-  const exportRecordsCursor = db.prepare<
+  const exportRecordsCursor = sql.prepare<
     {
       collection: string
       rkey: string
@@ -142,18 +142,18 @@ function prepareStatements(db: Database) {
       'WHERE (created_at, collection, rkey) < ($createdAt, $collection, $rkey) ORDER BY created_at DESC, collection DESC, rkey DESC LIMIT $limit',
   )
 
-  const listCollections = db.prepare<{ collection: string }, { limit: number }>(
+  const listCollections = sql.prepare<{ collection: string }, { limit: number }>(
     'SELECT DISTINCT collection FROM records ORDER BY collection ASC LIMIT $limit',
   )
 
-  const listCollectionsCursor = db.prepare<
+  const listCollectionsCursor = sql.prepare<
     { collection: string },
     { collection: string; limit: number }
   >(
     'SELECT DISTINCT collection FROM records WHERE collection > $collection ORDER BY collection ASC LIMIT $limit',
   )
 
-  const importRecord = db.prepare<
+  const importRecord = sql.prepare<
     void,
     {
       collection: string
@@ -215,7 +215,7 @@ export async function hasDatabaseFor(did: Did): Promise<boolean> {
   try {
     return await fs.exists(getDatabaseFilePath(did))
   } catch (err) {
-    rootLogger.error({ err, did }, 'hasDatabaseFor failed')
+    dbLogger.error({ err, did }, 'hasDatabaseFor failed')
   }
   return false
 }
@@ -224,19 +224,20 @@ export async function deleteDatabaseFor(did: Did): Promise<boolean> {
   did = zDid.parse(did)
   try {
     await fs.rm(getDatabaseDirectoryPath(did), { recursive: true, force: true })
+    dbLogger.trace({ did }, 'deleteDatabaseFor success')
     return true
   } catch (err: any) {
     if (err.code === 'ENOENT') {
-      rootLogger.debug({ err, did }, 'deleteDatabaseFor directory not found')
+      dbLogger.debug({ err, did }, 'deleteDatabaseFor not found')
     } else {
-      rootLogger.error({ err, did }, 'deleteDatabaseFor failed')
+      dbLogger.error({ err, did }, 'deleteDatabaseFor failed')
     }
   }
   return false
 }
 
 function openDatabaseFor(did: Did): Database {
-  const logger = rootLogger.child({ did })
+  const logger = dbLogger.child({ did })
 
   const dirPath = getDatabaseDirectoryPath(did)
   const filePath = getDatabaseFilePath(did)
@@ -249,10 +250,12 @@ function openDatabaseFor(did: Did): Database {
     throw Object.assign(new Error(message, { cause: err }), { did, dirPath })
   }
 
-  let db: Database
+  let sql: Database
+
+  logger.trace({ filePath }, 'openDatabaseFor opening')
 
   try {
-    db = new Database(filePath, { strict: true })
+    sql = new Database(filePath, { strict: true })
   } catch (err: any) {
     const message = 'openDatabaseFor open failed: ' + err?.message
     logger.error({ err, filePath }, message)
@@ -260,22 +263,16 @@ function openDatabaseFor(did: Did): Database {
   }
 
   try {
-    db.run(SQL_PRAGMAS)
-  } catch (err: any) {
-    const message = 'openDatabaseFor run pragmas failed: ' + err?.message
-    logger.error({ err }, message)
-    throw Object.assign(new Error(message, { cause: err }), { did })
-  }
-
-  try {
-    db.run(SQL_SCHEMA)
+    sql.run(SQL_SCHEMA)
   } catch (err: any) {
     const message = 'openDatabaseFor run schema failed: ' + err?.message
     logger.error({ err }, message)
     throw Object.assign(new Error(message, { cause: err }), { did })
   }
 
-  return db
+  logger.trace({ filePath }, 'openDatabaseFor success')
+
+  return sql
 }
 
 export interface StoreRecord {
@@ -357,10 +354,10 @@ export const StoreImportRecordsParams = z.object({
 export class Store {
   readonly did: Did
 
-  readonly #db: Database
+  readonly #sql: Database
   readonly #stmts: ReturnType<typeof prepareStatements>
 
-  readonly #logger: typeof rootLogger
+  readonly #logger: typeof dbLogger
 
   #lastUsed: number
   #isClosed: boolean
@@ -368,13 +365,13 @@ export class Store {
   constructor(did: Did) {
     did = zDid.parse(did)
 
-    const db = openDatabaseFor(did)
-    const stmts = prepareStatements(db)
+    const sql = openDatabaseFor(did)
+    const stmts = prepareStatements(sql)
 
-    const logger = rootLogger.child({ did })
+    const logger = dbLogger.child({ did })
 
     this.did = did
-    this.#db = db
+    this.#sql = sql
     this.#stmts = stmts
     this.#logger = logger
     this.#lastUsed = Date.now()
@@ -392,7 +389,7 @@ export class Store {
         this.#logger.warn({ err }, 'store close: failed to finalize statements')
       }
       try {
-        this.#db.close(true)
+        this.#sql.close(true)
       } catch (err) {
         this.#logger.warn({ err }, 'store close: failed to close db')
       }
@@ -421,11 +418,12 @@ export class Store {
       throw new Error(`store ${name} is closed`)
     }
     this.#updateLastUsed()
+    const context = { fn: name, ...pick(params, ['collection', 'rkey', 'create', 'swapCid']) }
     try {
+      this.#logger.trace(context, 'performing store action')
       return action()
     } catch (err: any) {
       const message = `store ${name}: ${err?.message || err}`
-      const context = pick(params, ['collection', 'rkey', 'create', 'swapCid'])
       this.#logger.error({ err, ...context }, message)
       throw Object.assign(new Error(message), { did: this.did, ...context })
     }
@@ -439,6 +437,7 @@ export class Store {
 
       const result = this.#stmts.getRecord.get({ collection, rkey })
       if (result == null) {
+        this.#logger.trace({ fn: 'getRecord', collection, rkey }, 'not found!')
         return { ok: false, error: 'not-found' }
       }
 
@@ -461,7 +460,7 @@ export class Store {
 
       const encodedSwapCid = swapCid != null ? cidString2Blob(swapCid) : null
 
-      const tx = this.#db.transaction((): Result<void, 'conflict'> => {
+      const tx = this.#sql.transaction((): Result<void, 'conflict'> => {
         if (encodedSwapCid != null) {
           const doCidsMatch = this.#stmts.checkCid.get({
             collection,
@@ -469,6 +468,7 @@ export class Store {
             swapCid: encodedSwapCid,
           })
           if (doCidsMatch !== 1) {
+            this.#logger.trace({ fn: 'upsertRecord', collection, rkey }, 'conflict!')
             return { ok: false, error: 'conflict' }
           }
         }
@@ -506,11 +506,13 @@ export class Store {
           swapCid: cidString2Blob(swapCid),
         })
         if (changes < 1) {
+          this.#logger.trace({ fn: 'deleteRecord', collection, rkey }, 'conflict!')
           return { ok: false, error: 'conflict' }
         }
       } else {
         const { changes } = this.#stmts.deleteRecord.run({ collection, rkey })
         if (changes < 1) {
+          this.#logger.trace({ fn: 'deleteRecord', collection, rkey }, 'not found!')
           return { ok: false, error: 'not-found' }
         }
       }
@@ -545,8 +547,8 @@ export class Store {
       let nextCursor: string | undefined
 
       if (rows.length === limit) {
-        const last = rows[rows.length - 1]
-        nextCursor = `${last!.createdAt}/${last!.rkey}`
+        const last = rows[rows.length - 1]!
+        nextCursor = `${last.createdAt}/${last.rkey}`
       }
 
       return { boxes, cursor: nextCursor }
@@ -608,8 +610,8 @@ export class Store {
       let nextCursor: string | undefined
 
       if (rows.length === limit) {
-        const last = rows[rows.length - 1]
-        nextCursor = `${last!.createdAt}/${last!.collection}/${last!.rkey}`
+        const last = rows[rows.length - 1]!
+        nextCursor = `${last.createdAt}/${last.collection}/${last.rkey}`
       }
 
       return { records, cursor: nextCursor }
@@ -622,7 +624,7 @@ export class Store {
       const { records } =
         StoreImportRecordsParams.parse(params) satisfies StoreImportRecordsParams
 
-      const tx = this.#db.transaction(() => {
+      const tx = this.#sql.transaction(() => {
         for (const record of records) {
           this.#stmts.importRecord.run({
             collection: record.collection,
