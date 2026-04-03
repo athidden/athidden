@@ -1,12 +1,12 @@
 {
-  "name": "",
-  "version": "0.0.1",
-  "description": "",
+  "name": "@athidden/uri",
+  "version": "0.1.0",
+  "description": "Parse and validate restricted AT URIs with support for both `at://` and `athidden://` protocols.",
   "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
   "license": "MIT",
   "repository": {
     "url": "https://github.com/luavixen/athidden",
-    "directory": ""
+    "directory": "packages/uri"
   },
   "bugs": {
     "url": "https://github.com/athidden/athidden/issues"
@@ -21,7 +21,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/bun": "latest",
+    "@atproto/syntax": "^0.5.3",
+    "@types/bun": "^1.3.11",
     "typescript": "latest"
   }
 }
