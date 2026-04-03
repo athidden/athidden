@@ -5,24 +5,19 @@
   "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
   "license": "MIT",
   "repository": {
-    "url": "https://github.com/luavixen/athidden",
+    "url": "https://github.com/athidden/athidden",
     "directory": "packages/lexicons"
   },
   "bugs": {
-    "url": "https://github.com/luavixen/athidden"
+    "url": "https://github.com/athidden/athidden/issues"
   },
-  "homepage": "https://github.com/luavixen/athidden",
+  "homepage": "https://github.com/athidden/athidden",
   "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "lex-generate": "lex-cli generate",
-    "lex-export": "lex-cli export",
-    "append-to-index-ts": "cat index-append.ts >> lib/index.ts",
-    "goat-parse-lexicons": "goat lex parse lexicons/ooo/bsky/**/*.json",
-    "goat-publish-lexicons": "goat lex publish --update --lexicons-dir ./lexicons",
-    "build": "bun run lex-generate && bun run lex-export && bun run append-to-index-ts && bun run goat-parse-lexicons && tsc --project tsconfig.build.json && echo 'done!'",
-    "prepublish": "rm -rf dist lib lexicons; bun run build"
+    "build": "sh ./build.sh",
+    "prepublish": "sh ./build.sh"
   },
   "dependencies": {
     "@atcute/lexicons": "^1.2.9"
