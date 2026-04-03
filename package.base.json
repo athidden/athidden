@@ -5,13 +5,13 @@
   "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
   "license": "MIT",
   "repository": {
-    "url": "https://github.com/luavixen/athidden",
-    "directory": ""
+    "url": "git+https://github.com/athidden/athidden",
+    "directory": "packages/uri"
   },
   "bugs": {
     "url": "https://github.com/athidden/athidden/issues"
   },
-  "homepage": "https://github.com/luavixen/athidden",
+  "homepage": "https://github.com/athidden/athidden",
   "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
