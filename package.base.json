@@ -17,7 +17,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "prepublish": "rm -rf dist; bun run build"
+    "prepublish": "rm -rf dist && bun run build"
   },
   "dependencies": {},
   "devDependencies": {
