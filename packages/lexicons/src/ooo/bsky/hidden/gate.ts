@@ -7,6 +7,7 @@ import {
   required,
   string,
   union,
+  unknown,
 } from '@atcute/lexicon-doc/builder'
 
 export default document({
@@ -27,7 +28,9 @@ export default document({
                   ref({ ref: '#followingAuthorRule' }),
                   ref({ ref: '#mutualsRule' }),
                   ref({ ref: '#listRule' }),
-                  ref({ ref: `#actorRule` }),
+                  ref({ ref: '#actorRule' }),
+                  ref({ ref: '#pdsRule' }),
+                  ref({ ref: '#customRule' }),
                 ],
               }),
             }),
@@ -56,6 +59,16 @@ export default document({
     actorRule: object({
       properties: {
         actor: required(string({ format: 'at-identifier' })),
+      },
+    }),
+    pdsRule: object({
+      properties: {
+        pds: required(string({ format: 'uri' })),
+      },
+    }),
+    customRule: object({
+      properties: {
+        rule: required(unknown()),
       },
     }),
   },

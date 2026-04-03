@@ -2,18 +2,21 @@ import { Database } from 'bun:sqlite'
 import paths from 'node:path'
 
 import { AppBskyGraphListitem } from '@atcute/bluesky'
+import { ClientResponseError } from '@atcute/client'
 import { BlueMicrocosmLinksGetBacklinks } from '@atcute/microcosm'
+
+import { parsedResourceUriToString } from '@athidden/lexicons'
 
 import { env } from '../env'
 import { rootLogger } from '../logger'
-import { Dedupe, type Did, type PubRUri, Result, lazy } from '../util'
-import { asResult, constellation } from './client'
+import { type CanPubRUri, Dedupe, type Did, type PubRUri, type RUri, Result, lazy } from '../util'
+import { constellation } from './client'
 import { getPublicRecord } from './get'
-import { parseUri } from './uri'
+import { type ParsedUri, parseUri } from './uri'
 
 const listLogger = rootLogger.child({ name: 'bskyList' })
 
-const listMembershipCache = lazy(() => {
+const listCache = lazy(() => {
   const databasePath = paths.join(env.HDS_DATA_DIRECTORY, 'list_membership_cache.sqlite')
 
   listLogger.debug({ databasePath }, 'opening database')
@@ -25,7 +28,7 @@ PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 PRAGMA busy_timeout = 5000;
 
-CREATE TABLE IF NOT EXISTS list_memberships (
+CREATE TABLE IF NOT EXISTS memberships (
   actor TEXT NOT NULL,
   list TEXT NOT NULL,
   is_member INTEGER NOT NULL,
@@ -33,7 +36,7 @@ CREATE TABLE IF NOT EXISTS list_memberships (
   PRIMARY KEY (actor, list)
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS list_memberships_fetched_at ON list_memberships (fetched_at);
+CREATE INDEX IF NOT EXISTS memberships_fetched_at ON memberships (fetched_at);
 `)
 
   type MembershipRow = {
@@ -45,17 +48,17 @@ CREATE INDEX IF NOT EXISTS list_memberships_fetched_at ON list_memberships (fetc
   const CACHE_TTL = Math.round(env.HDS_LIST_CACHE_TTL)
 
   const stmtGet = sql.prepare<MembershipRow, { actor: string; list: string }>(
-    'SELECT actor, list, is_member AS isMember FROM list_memberships ' +
+    'SELECT actor, list, is_member AS isMember FROM memberships ' +
       `WHERE actor = $actor AND list = $list AND fetched_at >= (unixepoch() - ${CACHE_TTL})`,
   )
 
-  const stmtUpsert = sql.prepare<void, { actor: string; list: string; isMember: number }>(
-    'INSERT OR REPLACE INTO list_memberships (actor, list, is_member, fetched_at) ' +
+  const stmtUpsert = sql.prepare<void, { actor: string; list: string; isMember: boolean }>(
+    'INSERT OR REPLACE INTO memberships (actor, list, is_member, fetched_at) ' +
       'VALUES($actor, $list, $isMember, unixepoch())',
   )
 
   const stmtGc = sql.prepare(
-    `DELETE FROM list_memberships WHERE fetched_at < (unixepoch() - ${CACHE_TTL})`,
+    `DELETE FROM memberships WHERE fetched_at < (unixepoch() - ${CACHE_TTL})`,
   )
 
   const interval = setInterval(() => stmtGc.run(), CACHE_TTL)
@@ -72,11 +75,11 @@ CREATE INDEX IF NOT EXISTS list_memberships_fetched_at ON list_memberships (fetc
   return { stmtGet, stmtUpsert }
 })
 
-export type ActorOnListResult = Result<boolean, 'not-found' | 'invalid-uri' | 'failed'>
+export type ActorOnListResult = Result<boolean, 'not-found' | 'invalid-uri'>
 
-type ListMembershipKey = { actor: Did; list: PubRUri }
+type MembershipKey = { actor: Did; list: PubRUri }
 
-const listDedupe = new Dedupe<ListMembershipKey, ActorOnListResult>({
+const listDedupe = new Dedupe<MembershipKey, ActorOnListResult>({
   perform: performIsOnList,
   keyOf: ({ actor, list }) => `${actor}/${list}`,
 })
@@ -85,97 +88,105 @@ const listDedupe = new Dedupe<ListMembershipKey, ActorOnListResult>({
  * Checks whether `actor` is a member of the given Bluesky list.
  *
  * Algorithm:
- * 1. Parse and resolve the list URI to get the list owner's DID and rkey.
- * 2. Query Constellation for backlinks - records of type
+ * 1. Parse and resolve the list URI to get the list owner's DID and the list's
+ *    record key.
+ * 2. Query Constellation for backlinks, specifically records of type
  *    `app.bsky.graph.listitem` whose `subject` field references `actor`,
  *    authored by the list owner.
- * 3. For each candidate backlink, fetch the actual listitem record and verify
- *    that its `list` field points to the target list - matching both rkey and
- *    owner DID.
+ * 3. For each candidate backlink, fetch the actual `listitem` record and
+ *    verify that its `list` field points to the target list, matching both
+ *    the list record key and the owner DID.
+ *
+ * Obviously, this means that the `listitem` and the actual list must be in
+ * the same repository (so, by the same owner/author). The social-app won't let
+ * you violate this, but you could break it manually.
  */
 export function isOnList(actor: Did, list: PubRUri): Promise<ActorOnListResult> {
   return listDedupe.use({ actor, list })
 }
 
-async function performIsOnList(key: ListMembershipKey): Promise<ActorOnListResult> {
+async function performIsOnList(key: MembershipKey): Promise<ActorOnListResult> {
   const { actor, list } = key
 
-  const parsedListResult = parseUri({ uri: list, type: 'public' })
-  if (!parsedListResult.ok) {
-    return Result.mapErr(parsedListResult, () => 'invalid-uri')
+  const listUriResult = parseUri({ uri: list, type: 'public' })
+  if (!listUriResult.ok) {
+    return Result.mapErr(listUriResult, () => 'invalid-uri')
   }
 
-  const parsedList = parsedListResult.value
+  const listUri = Result.unwrap(listUriResult)
 
-  const listOwnerResult = await parsedList.resolveDid()
+  const listOwnerResult = await listUri.resolveDid()
   if (!listOwnerResult.ok) {
     return Result.mapErr(listOwnerResult, () => 'not-found')
   }
 
-  const listOwner: Did = listOwnerResult.value
+  const listOwner: Did = Result.unwrap(listOwnerResult)
+
+  listUri.repo = listOwner
+
+  const listUriString: CanPubRUri = parsedResourceUriToString(listUri)
 
   // check cache before asking Constellation/AppView
-  const cached = listMembershipCache().stmtGet.get({ actor, list })
-  if (cached != null) {
-    return Result.ok(cached.isMember !== 0)
+  const row = listCache().stmtGet.get({ actor, list: listUriString })
+  if (row != null) {
+    return Result.ok(row.isMember !== 0)
   }
 
-  const result = await queryConstellationForMembership(actor, listOwner, parsedList.rkey)
-
-  // cache the result
-  listMembershipCache().stmtUpsert.run({
-    actor,
-    list,
-    isMember: result.ok && result.value ? 1 : 0,
-  })
-
-  return result
+  return queryConstellationForMembership(actor, listOwner, listUri, listUriString)
 }
 
-/**
- * Queries Constellation backlinks and verifies candidate `listitem` records.
- * Pages through results until a match is found or all candidates are exhausted.
- */
+/*
+
+// cache the result
+listMembershipCache().stmtUpsert.run({
+  actor,
+  list,
+  isMember: result.ok && result.value ? 1 : 0,
+})*/
+
 async function queryConstellationForMembership(
   actor: Did,
   listOwner: Did,
-  listRkey: string,
+  listUri: ParsedUri<{ uri: RUri; type: 'public' }>,
+  listUriString: CanPubRUri,
 ): Promise<ActorOnListResult> {
   let cursor: string | undefined
 
   do {
     // find listitem records that reference this actor, authored by the list owner
-    const backlinksResult = await asResult(
-      constellation.call(BlueMicrocosmLinksGetBacklinks, {
-        params: {
-          source: 'app.bsky.graph.listitem:subject',
-          subject: actor,
-          did: [listOwner],
-          limit: 100,
-          cursor,
-        },
-      }),
-    )
+    const res = await constellation.call(BlueMicrocosmLinksGetBacklinks, {
+      params: {
+        source: 'app.bsky.graph.listitem:subject',
+        subject: actor,
+        did: [listOwner],
+        limit: 100,
+        cursor,
+      },
+    })
 
-    if (!backlinksResult.ok) {
-      listLogger.warn({ error: backlinksResult.error }, 'constellation backlinks query failed')
-      return Result.err('failed')
+    if (!res.ok) {
+      listLogger.warn(
+        { error: res.data.error },
+        'blue.microcosm.links.getBacklinks failed with unexpected error',
+      )
+      throw new ClientResponseError(res)
     }
 
-    const { records, cursor: nextCursor } = backlinksResult.value
+    const { records, cursor: nextCursor } = res.data
+
     cursor = nextCursor ?? undefined
 
     if (records.length < 1) break
 
     // filter to valid backlink entries before fetching records
-    // this shouldn't do anything but like. never trust a computer
+    // this shouldn't do anything but. never trust a computer
     const candidates = records.filter(({ did: repo, collection }) => {
       if (repo !== listOwner) {
-        listLogger.debug({ repo, listOwner }, 'constellation returned mismatched did')
+        listLogger.debug({ repo, listOwner }, 'constellation returned mismatched did?')
         return false
       }
       if (collection !== 'app.bsky.graph.listitem') {
-        listLogger.debug({ collection }, 'constellation returned wrong collection')
+        listLogger.debug({ collection }, 'constellation returned mismatched collection?')
         return false
       }
       return true
@@ -197,33 +208,48 @@ async function queryConstellationForMembership(
           return null
         }
 
-        const listItem = itemRecordResult.value.value
+        const { value: itemRecord } = Result.unwrap(itemRecordResult)
 
         // parse the list URI from the listitem record to verify it points to our target list
-        const itemListResult = parseUri({ uri: listItem.list, type: 'public' })
-        if (!itemListResult.ok) {
-          logger.debug('list record has invalid list uri: ' + Result.toString(itemListResult))
+        const otherListUriResult = parseUri({ uri: itemRecord.list, type: 'public' })
+        if (!otherListUriResult.ok) {
+          logger.debug('list record has invalid list uri: ' + Result.toString(otherListUriResult))
           return null
         }
 
-        const itemList = itemListResult.value
+        const otherListUri = Result.unwrap(otherListUriResult)
 
-        if (itemList.collection !== 'app.bsky.graph.list') {
-          logger.debug('list record has wrong list collection: ' + itemList.collection)
+        // collection must be 'app.bsky.graph.list'
+        if (otherListUri.collection !== 'app.bsky.graph.list') {
+          logger.debug('list record has wrong list collection: ' + otherListUri.collection)
           return null
         }
 
-        if (itemList.rkey !== listRkey) return null
-
-        // resolve the DID to confirm the listitem's list field actually
-        // belongs to the same owner (handles vs DIDs may differ in the URI)
-        const itemListOwnerResult = await itemList.resolveDid()
-        if (!itemListOwnerResult.ok) {
-          logger.debug('failed to resolve list author: ' + Result.toString(itemListOwnerResult))
+        // resolve the DID to confirm the listitem's list field actually belongs to the same owner
+        const otherListOwnerResult = await otherListUri.resolveDid()
+        if (!otherListOwnerResult.ok) {
+          logger.debug('failed to resolve list author: ' + Result.toString(otherListOwnerResult))
           return null
         }
 
-        return itemListOwnerResult.value === listOwner
+        const otherListOwner: Did = Result.unwrap(otherListOwnerResult)
+
+        // owner must be the same as the list owner
+        if (otherListOwner !== listOwner) {
+          logger.debug('list owner does not match: ' + otherListOwner + ' !== ' + listOwner)
+          return null
+        }
+
+        otherListUri.repo = otherListOwner
+
+        const otherListUriString: CanPubRUri = parsedResourceUriToString(otherListUri)
+
+        // we know that we are on itemList, but we don't know if itemList is *the* list we're looking for
+        // cache this successful result
+        listCache().stmtUpsert.run({ actor, list: otherListUriString, isMember: 1 })
+
+        // check if this is the list we're looking for
+        return listUriString === otherListUriString
       }),
     )
 
@@ -231,6 +257,8 @@ async function queryConstellationForMembership(
       return Result.ok(true)
     }
   } while (cursor)
+
+  listCache().stmtUpsert.run({ actor, list: listUriString, isMember: 0 })
 
   return Result.ok(false)
 }

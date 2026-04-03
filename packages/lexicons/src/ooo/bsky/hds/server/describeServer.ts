@@ -1,7 +1,7 @@
 import { document, object, query, ref, required, string } from '@atcute/lexicon-doc/builder'
 
 export default document({
-  id: 'ooo.bsky.hds.admin.describeServer',
+  id: 'ooo.bsky.hds.server.describeServer',
   revision: 1,
   defs: {
     main: query({
@@ -10,10 +10,9 @@ export default document({
         schema: object({
           properties: {
             did: required(string({ format: 'did' })),
-            owner: required(string({ format: 'did' })),
-            description: string(),
             links: ref({ ref: '#links' }),
             contact: ref({ ref: '#contact' }),
+            description: string(),
           },
         }),
       },

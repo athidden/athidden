@@ -1,10 +1,10 @@
 export type { Cid, Did, Nsid } from '@athidden/lexicons'
 
-export type MaybePromise<T> = T | Promise<T>
-
+/** Picks the specified keys from an object, returning a new object with only those keys present. */
 export const pick = (obj: any, keys: any[]) =>
   Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]))
 
+/** Splits an array into chunks of the specified size. */
 export const chunk = <T>(arr: T[], size: number): T[][] => {
   const chunks = []
   for (let i = 0; i < arr.length; i += size) {
@@ -13,19 +13,8 @@ export const chunk = <T>(arr: T[], size: number): T[][] => {
   return chunks
 }
 
-export const lazy = <T>(fn: () => T): (() => T) => {
-  let value: T | undefined
-  return () => {
-    if (value === undefined) {
-      value = fn()
-    }
-    return value
-  }
-}
-
 export * from './result'
 export * from './async'
 export * from './types'
-export * from './safe-cbor-cid'
+export * from './cbor-cid'
 export * from './safe-fetch'
-export * from './box'

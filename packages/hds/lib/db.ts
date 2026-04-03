@@ -26,7 +26,7 @@ import {
   zUint8Array,
 } from './util'
 
-const dbLogger = rootLogger.child({ name: 'db' })
+const storeLogger = rootLogger.child({ name: 'db' })
 
 const SQL_SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -203,11 +203,11 @@ function prepareStatements(sql: Database) {
 
 function getDatabaseDirectoryPath(did: Did): string {
   const hash = (BigInt(Bun.hash(did)) & 0xffn).toString(16).padStart(2, '0')
-  return paths.join(env.HDS_DATA_DIRECTORY, hash, did)
+  return paths.join(env.HDS_DATA_DIRECTORY, 'actor', hash, did)
 }
 
 function getDatabaseFilePath(did: Did): string {
-  return paths.join(getDatabaseDirectoryPath(did), 'records.sqlite')
+  return paths.join(getDatabaseDirectoryPath(did), 'store.sqlite')
 }
 
 export async function hasDatabaseFor(did: Did): Promise<boolean> {
@@ -215,7 +215,7 @@ export async function hasDatabaseFor(did: Did): Promise<boolean> {
   try {
     return await fs.exists(getDatabaseFilePath(did))
   } catch (err) {
-    dbLogger.error({ err, did }, 'hasDatabaseFor failed')
+    storeLogger.error({ err, did }, 'hasDatabaseFor failed')
   }
   return false
 }
@@ -224,20 +224,20 @@ export async function deleteDatabaseFor(did: Did): Promise<boolean> {
   did = zDid.parse(did)
   try {
     await fs.rm(getDatabaseDirectoryPath(did), { recursive: true, force: true })
-    dbLogger.trace({ did }, 'deleteDatabaseFor success')
+    storeLogger.trace({ did }, 'deleteDatabaseFor success')
     return true
   } catch (err: any) {
     if (err.code === 'ENOENT') {
-      dbLogger.debug({ err, did }, 'deleteDatabaseFor not found')
+      storeLogger.debug({ err, did }, 'deleteDatabaseFor not found')
     } else {
-      dbLogger.error({ err, did }, 'deleteDatabaseFor failed')
+      storeLogger.error({ err, did }, 'deleteDatabaseFor failed')
     }
   }
   return false
 }
 
 function openDatabaseFor(did: Did): Database {
-  const logger = dbLogger.child({ did })
+  const logger = storeLogger.child({ did })
 
   const dirPath = getDatabaseDirectoryPath(did)
   const filePath = getDatabaseFilePath(did)
@@ -357,7 +357,7 @@ export class Store {
   readonly #sql: Database
   readonly #stmts: ReturnType<typeof prepareStatements>
 
-  readonly #logger: typeof dbLogger
+  readonly #logger: typeof storeLogger
 
   #lastUsed: number
   #isClosed: boolean
@@ -368,7 +368,7 @@ export class Store {
     const sql = openDatabaseFor(did)
     const stmts = prepareStatements(sql)
 
-    const logger = dbLogger.child({ did })
+    const logger = storeLogger.child({ did })
 
     this.did = did
     this.#sql = sql

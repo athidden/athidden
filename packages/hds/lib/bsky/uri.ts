@@ -17,6 +17,7 @@ export type ParsedUriResolveDidResult = Result<Did, 'not-found' | 'invalid'>
 export type ParsedUri<T extends ParseUriOptions> = {
   hidden: boolean
   repo: ActorIdentifier
+  fragment: string | undefined
   resolveDid: () => Promise<ParsedUriResolveDidResult>
 } & (
   T['level'] extends 'collection' ? { collection: Nsid } :
@@ -42,7 +43,7 @@ export function parseUri<const T extends ParseUriOptions>(options: T): ParseUriR
     return Result.err('bad-uri-type')
   }
 
-  const { repo, collection, rkey } = parsedUriResult.value
+  const { repo, collection, rkey, fragment } = parsedUriResult.value
 
   if (level === 'rkey' || level == null) {
     if (!collection) return Result.err('missing-collection')
@@ -53,5 +54,5 @@ export function parseUri<const T extends ParseUriOptions>(options: T): ParseUriR
 
   const boundResolveDid = () => resolveDid(repo)
 
-  return Result.ok({ hidden, repo, collection, rkey, resolveDid: boundResolveDid } as any)
+  return Result.ok({ hidden, repo, collection, rkey, fragment, resolveDid: boundResolveDid } as any)
 }

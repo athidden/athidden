@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { type CanHidRUri, type CanRUri, type Cid, zCanHidRUri, zCanRUri, zCid } from '.'
+import { type CanHidRUri, type CanRUri, type Cid, zCanHidRUri, zCanRUri, zCid } from './util'
 
 export interface Box {
   gateUri: CanRUri

@@ -18,24 +18,3 @@ export const constellation = new Client({
     }),
   }),
 })
-
-type ClientResponseLike = { ok: true; data: unknown } | { ok: false; data: XRPCErrorPayload }
-
-type ClientResponseResult<T extends ClientResponseLike> = Result<
-  T extends { ok: true; data: infer D } ? D : never,
-  string
->
-
-export const asResult: {
-  <T extends ClientResponseLike>(promise: Promise<T>): Promise<ClientResponseResult<T>>
-  <T extends ClientResponseLike>(response: T): ClientResponseResult<T>
-} = (input: Promise<ClientResponseLike> | ClientResponseLike): any => {
-  if (input instanceof Promise) {
-    return input.then(asResult)
-  }
-  if (input.ok) {
-    return Result.ok(input.data)
-  } else {
-    return Result.err(input.data.error, input.data.message)
-  }
-}

@@ -15,7 +15,7 @@ export const Env = z.object({
   HDS_IDENTITY_CACHE_TTL: z.int().default(24 * 60 * 60),
   HDS_RECORD_CACHE_TTL: z.int().default(3600),
   HDS_RELATIONSHIP_CACHE_TTL: z.int().default(60),
-  HDS_LIST_CACHE_TTL: z.int().default(60),
+  HDS_MEMBERSHIP_CACHE_TTL: z.int().default(60),
 })
 
 export const env: Env = (() => {

@@ -20,6 +20,7 @@ import {
 
 import { z } from 'zod'
 
+/** Represents a record key. */
 export type RKey = RecordKey
 
 export const isRKey = isRecordKey
