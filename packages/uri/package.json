@@ -1,6 +1,6 @@
 {
   "name": "@athidden/uri",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Parse and validate restricted AT URIs with support for both `at://` and `athidden://` protocols.",
   "author": "Lua <lua@foxgirl.dev> (https://foxgirl.dev/)",
