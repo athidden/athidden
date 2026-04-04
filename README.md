@@ -1,5 +1,7 @@
 # athidden
 
+Check out https://bsky.ooo/ for additional information.
+
 Don't you miss [Twitter Circles](https://techcrunch.com/2023/11/01/the-demise-of-twitter-circles-left-a-void-that-instagram-close-friends-cant-fill/)?
 What if Bluesky/ATProto had something similar?
 
@@ -19,6 +21,7 @@ I'm not the first animal to think about this, there is plenty of prior art:
 - Germ Network https://www.germnetwork.com/ - Also pretty cool, still DMs, works
 - Paul Frazee's "Private data: developing a rubric for success" https://pfrazee.leaflet.pub/3lzhmtognls2q
 - Paul Frazee's "Three schemes for shared-private storage" https://pfrazee.leaflet.pub/3lzhui2zbxk2b
+- Daniel Holmgren's "Permissioned Data Diary" https://dholms.leaflet.pub/3mhj6bcqats2o
 
 I would definitely recommend checking out the blog posts by Paul Frazee. My solution follows their "hosted arena scheme" and, while data stored on the HDS is "unsigned", the PDS is of course signed & verified & trusted, and the `ooo.bsky.hidden.ref` field on the PDS holds a CID that allows clients to confirm the authenticity of the hidden record.
 
